@@ -1,0 +1,9 @@
+{
+  "settings": {
+      "token": "your bot token",
+      "port": 8080
+  },
+  "auth": {
+      "masterpass": "your authentication password"
+  }
+}
