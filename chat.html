@@ -7,54 +7,148 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-size: 13px; font-family: 'Open Sans', sans-serif; background: #36393e; color: white;}
-      form { padding: 3px; position: fixed; bottom: 0; width: 100%;}
-      #m { position: initial;}
-      form input { background: hsla(0,0%,100%,.06); color: white; border: 1px solid hsla(0,0%,100%,.06); padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(114, 137, 218); border: none; padding: 10px; }
-      #eval {padding-top: 5px;}
-      #eval button {padding-top: 9px;}
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li.owner { font-style: oblique; }
+      .disclaimer {position: fixed; bottom: 0; color: #ccc; width: 15%; padding-bottom:1em;}
+      .do { padding: 3px; position: fixed; bottom: 0; width: 82.5%; height: 4em;}
+      .channels { padding: 3px; position: fixed; width: 19.5%; height: 4em;}
+	  .dms { padding: 3px; position: fixed; width: 19.5%; height: 4em; margin-top: 5%;}
+	  .eval {padding: 3px; position: fixed; width: 19.5%; height: 4em; margin-top: 10%;}
+	  #channelname {
+	    position: fixed;
+width: 70%;
+margin-left: 15%;
+height: 5em;
+background-color: #36393e;
+border-bottom: 1px solid #2F2F2F;
+	  }
+	  #channelname p {
+	    font-size: 20px;
+	    color: #fff;
+	    margin-left: 1em;
+	    margin-top: 1em;
+	  }
+	  #users {
+    position: fixed;
+    width: 15%;
+    height: 100%;
+    background-color: rgb(31, 34, 38);
+    margin-left: 85%;
+   }
+   #userss { list-style-type: none; margin: 0; padding: 0; padding-bottom: 3.5%; overflow:hidden;}
+      #servers form input { background: hsla(0,0%,100%,.06); color: white; border: 1px solid hsla(0,0%,100%,.06); padding: 10px; width: 75%; margin-right: .5%; height: 3em;}
+      #mc { background: hsla(0,0%,100%,.06); color: white; border: 1px solid hsla(0,0%,100%,.06); padding: 10px; width: 84.7%; margin-right: .6%; height: 3em;}
+      #servers form button {width: 24%; background-color: rgb(114, 137, 218); border: none; padding: 10px; height: 3em; height: 3em;transition: background .2s ease-in}
+      #servers form button:hover {background-color:rgb(143, 164, 239);}
+      .profile {border-radius:50%; width:2em; height:2em;}
+      #servers { background: #1f2226; position:fixed; height: 100%; width: 15%;}
+      #footer { background: #36393e; height: 4em; margin-left: 15%; position: fixed; bottom: 0; width: 70%;}
+      #messages { list-style-type: none; margin: 0; padding: 0; padding-bottom: 3.5%;  padding-top: 5em;overflow:hidden;}
+      #messages li {margin-left: 15%; padding: 5px 10px; background: #1f2124; width: 70%;}
       #messages li:nth-child(odd) { background: #2e3136; }
     </style>
   </head>
   <body>
+    <div id='channelname'>
+      <p id='name'>#undefined</p>
+    </div>
+    <div id="users">
+<ul id="userss">
+  </ul>
+  </div>
+    <div id='servers'>
+      <form class='channels'>
+        <input id='channel' autocomplete='off' placeholder='No permission' disabled/>
+      </form>
+	  <form class='dms'>
+	  	<input id='dmchannel' autocomplete='off' placeholder='No permission'disabled/>
+	  </form>
+	  <form class='eval'>
+		  <input id='evals' autocomplete='off' placeholder='No permission'disabled/>
+	  </form>
+      <p class='disclaimer'>Discord is a trademark of Hammer And Chisel Inc. Botcord is piece of software made by Team Cernodile.</p>
+    </div>
     <ul id="messages"></ul>
-    <form name='msgs'>
-      <input id="m" autocomplete="off" placeholder="To chat, enter the password in Developer console as localStorage.token, and refresh the page." disabled/><button id='ms' disabled>Send</button>
+    <div id='footer'>
+    <form class='do' name='msgs'>
+      <input id="mc" autocomplete="off" placeholder="To chat, enter the password in Developer console as localStorage.token, and refresh the page." disabled/>
     </form>
+    </div>
     <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
-    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
     <script>
     /* global $ */
       var socket = io()
       var localStorage = {}
-      $("form").submit(function() {
-        socket.emit('chat message', $('#m').val(), localStorage.token)
-        $('#m').val('')
+	  function scrollToBottom(e) {
+		var objDiv = document.getElementById(e);
+		objDiv.scrollTop = objDiv.scrollHeight;
+	  }
+      function detectUrl (message) {
+        var urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+        return message.replace(urlRegex, function (url) {
+          return '<a href="' + url + '">' + url + '</a>'
+        })
+      }
+      $(".do").submit(function() {
+        socket.emit('chat message', $('#mc').val(), localStorage.token)
+        $('#mc').val('')
+        return false
+      })
+      $(".channels").submit(function() {
+        socket.emit('channelChange', $('#channel').val(), localStorage.token, '0')
+        $('#channel').val('')
+        return false
+      })
+	    $(".dms").submit(function() {
+        socket.emit('channelChange', $('#dmchannel').val(), localStorage.token, '1')
+        $('#dmchannel').val('')
+        return false
+      })
+      $(".eval").submit(function() {
+        socket.emit('eval', $('#evals').val(), localStorage.token)
+        $('#evals').val('')
         return false
       })
       socket.on('connect', function() {
         if (localStorage.token) {
           socket.emit('auth', localStorage.token)
         }
+        socket.emit('getChannel')
+      })
+      socket.on('memberr', function(u) {
+        console.log(u)
+        for (var i in u) {
+          var message = $('<li>').append(u[i])
+          $('#userss').append(message)
+        }
+      })
+      socket.on('channelChange', function(dm) {
+        socket.emit('getChannel')
+        if (!dm) socket.emit('memberr')
+      })
+      socket.on('getChannel', function(name, topic, dm) {
+        if (dm) return document.getElementById('name').innerHTML = '@' + name
+        document.getElementById('name').innerHTML = '#' + name + ' ' + topic
       })
       socket.on('auth', function (msg, token) {
         if (msg === '200') {
-          document.getElementById("m").removeAttribute('disabled')
-          document.getElementById("ms").removeAttribute('disabled')
-          document.getElementById("m").setAttribute('placeholder', 'Chat in the channel...')
+          document.getElementById("mc").removeAttribute('disabled')
+          document.getElementById("channel").removeAttribute('disabled')
+	    	  document.getElementById("dmchannel").removeAttribute('disabled')
+	    	  document.getElementById("evals").removeAttribute('disabled')
+          document.getElementById("mc").setAttribute('placeholder', 'Chat in the channel...')
+          document.getElementById("channel").setAttribute('placeholder', 'Channel ID')
+		      document.getElementById("dmchannel").setAttribute('placeholder', 'User ID (DM)')
+		      document.getElementById("evals").setAttribute('placeholder', 'Evaluate code')
           return localStorage.token = token
         }
         return
       })
-      socket.on('local message', function (msg) {
-        $('#messages').append($('<li>').text(msg));
-      })
-      socket.on('chat message', function (msg) {
-        if (msg.startsWith('> You')) return $('#messages').append($('<li class="owner">').text(msg));
-        $('#messages').append($('<li>').text(msg));
+      socket.on('chat message', function (msg, avatar, metadata) {
+        var avy = '<img src="' + avatar + '" class="profile"/> ' + metadata
+        var paragraph = '<p>' + msg + '</p>'
+        var message = $("<li>").append(avy, ' ' + paragraph + '</li>')
+        $('#messages').append(message)
+		return $('html, body').animate({scrollTop:$('#messages').height()}, 350, 'linear');
       })
     </script>
   </body>
