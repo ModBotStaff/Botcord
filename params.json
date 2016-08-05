@@ -1,0 +1,6 @@
+{
+  "name": "Botcord",
+  "tagline": "A visual simulation of Discord.",
+  "body": "# Botcord\r\nBotcord is a visual representation of OAuth applications in Discord, used to listen to a channel, chat as a bot, using a Node webserver.\r\n\r\n# Our goal\r\nWe strive to reach full Discord experience for OAuth applications, with the resources of Discord API, rebuild visual style, easy-to-manage authentication.\r\n\r\n# Planned updates\r\nv1.2 - The Emoji Update\r\n\r\nv1.3 - Authentication Who? Update\r\n\r\nv1.4 - Easy-to-switch servers/channels\r\n\r\nv1.5 - Pins! Mentions! Role Mentions! Update\r\n\r\nv1.6 - Hey, know things OAuth applications can't do, but users can? Update\r\n\r\nv1.7 - Virtual Friends (Mark people as friends, when in reality they aren't) Update\r\n\r\nv1.8 - Say bye to using IDs, say hi to even user-friendlier experience Update\r\n\r\nv2.0 - Overhaul of GUI, fully customizable color schemes, auto-text formater, developer mode Update.\r\n\r\n# Support us\r\nSupport Botcord development, by dropping bits of code in our source code, helping our name get known, testing it yourself, searching for possible security holes, patching everything up.",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
