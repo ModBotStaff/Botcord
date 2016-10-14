@@ -554,6 +554,42 @@ margin-right: 10px;
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
+  height: 90vh;
+}
+.channel-activity span {
+  float:left;
+}
+.icon.icon-file.document {
+    background-image: url('https://discordapp.com/assets/9f358f466473586417baee7bacfba5ca.svg');
+}
+.attachment .metadata {
+    color: #737f8d;
+    font-size: 11px;
+    margin-top: 20px;
+position: absolute;
+left: 115px;
+}
+.attachment a {
+    text-decoration: none;
+    font-size: 16px;
+font-weight: 600;
+padding-top: 2px;
+padding-left: 5px;
+margin: 0;
+display: block;
+}
+.attachment {
+  display:flex;
+  margin: 15px 0 5px;
+zoom: 1;
+}
+.icon {
+    display: inline-block;
+}
+.icon.icon-file {
+    width: 30px;
+    height: 40px;
+    background: url('https://discordapp.com/assets/985ea67d2edab4424c62009886f12e44.svg') no-repeat;
 }
 .invite-button {
     margin: 10px 0;
@@ -634,6 +670,13 @@ flex-shrink: 0;
     background: -o-linear-gradient(left,#282b30 85%,#2e3136);
     background: -ms-linear-gradient(left,#282b30 85%,#2e3136);
     background: linear-gradient(to right,#282b30 85%,#2e3136);
+}
+.channels .selected.error {
+  background: -webkit-linear-gradient(left,#4a1a1a 85%,#2e3136);
+    background: -moz-linear-gradient(left,#4a1a1a 85%,#2e3136);
+    background: -o-linear-gradient(left,#4a1a1a 85%,#2e3136);
+    background: -ms-linear-gradient(left,#4a1a1a 85%,#2e3136);
+    background: linear-gradient(to right,#4a1a1a 85%,#2e3136);
 }
 .channel {
     -webkit-box-orient: horizontal;
@@ -1312,4 +1355,8 @@ margin-bottom: 18px;
 .embed-author, .embed-footer, .embed-title {
     display: inline-block;
     font-weight: 600;
+}
+.embed-title {
+    margin-bottom: 4px;
+    font-size: 14px;
 }
