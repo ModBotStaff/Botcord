@@ -8,7 +8,6 @@
 * Happy testing,
 * Cernodile
 */
-var Socket = new WebSocket('wss://gateway.discord.gg/?encoding=json&v=6')
 var avatarHashes = [
   "6debd47ed13483642cf09e832ed0bc1b",
   "322c936a8c8be1b803cd94861bdfa868",
@@ -16,201 +15,28 @@ var avatarHashes = [
   "0e291f67c9274a1abdddeb3fd919cbaa",
   "1cbd08c76f8af6dddce02c5138971129"
 ]
-var bot = {}
-bot.guilds = new Map()
-bot.channels = new Map()
-bot.privateChannels = new Map()
-bot.users = new Map()
-var hBeatInterval = 1000
 var activeChannel = '0'
 var token = ''
 var currentGuildMembers
 var activeGuild
 var converter = new showdown.Converter()
-/*
-* All of the perm constants and functions taken from abalabahaha/eris
-* Slightly modified to fit Botcord
-*/
-function getPerm(perm) {
-    var result = []
-    this.perm = perm
-    for(var d of Object.keys(perms)) {
-      if (!d.startsWith('all')) {
-        if (this.perm & perms[d]) {
-          result.push({name: d, value: true})
-        }
-      }
-    }
-    return result
-}
-var perms = {
-  createInstantInvite: 1,
-  kickMembers:         1 << 1,
-  banMembers:          1 << 2,
-  administrator:       1 << 3,
-  manageChannels:      1 << 4,
-  manageGuild:         1 << 5,
-  readMessages:        1 << 10,
-  sendMessages:        1 << 11,
-  sendTTSMessages:     1 << 12,
-  manageMessages:      1 << 13,
-  embedLinks:          1 << 14,
-  attachFiles:         1 << 15,
-  readMessageHistory:  1 << 16,
-  mentionEveryone:     1 << 17,
-  externalEmojis:      1 << 18,
-  voiceConnect:        1 << 20,
-  voiceSpeak:          1 << 21,
-  voiceMuteMembers:    1 << 22,
-  voiceDeafenMembers:  1 << 23,
-  voiceMoveMembers:    1 << 24,
-  voiceUseVAD:         1 << 25,
-  changeNickname:      1 << 26,
-  manageNicknames:     1 << 27,
-  manageRoles:         1 << 28,
-  manageEmojis:        1 << 30,
-  all:      0b1111111111101111111110000111111,
-  allGuild: 0b1111100000000000000000000111111,
-  allText:  0b0010000000001111111110000010001,
-  allVoice: 0b0010011111100000000000000010001
-}
 converter.setOption('headerLevelStart', '10');
 converter.setOption('strikethrough', true);
-var data = {
-  "token": '',
-  "properties": {
-    "$os": "windows",
-    "$browser": "Botcord",
-    "$device": "Botcord",
-  },
-  "compress": false,
-  "large_threshold": 250
-}
 function startBotcord (formdata) {
-  var Socket = new WebSocket('wss://gateway.discord.gg/?encoding=json&v=6')
-  token = formdata.trim()
-  data.token = token
-}
-Socket.onopen = function () {
-  console.log('%c[Gateway] %cConnection established', 'color:purple; font-weight: bold;', 'color:#000;')
-}
-function testStatus (status, game) {
-  if (!game) game = {name: null}
-  console.log(status)
-  Socket.send(JSON.stringify({"op": 3, "d": {"game": {"name": game.name}, "afk": "", "since": Date.now(), "status": status}}))
-  localStorage.status = status
-}
-if (!localStorage.status) localStorage.status = 'online' // Reserved for a feature, k.
-Socket.onmessage = function (evt) {
-  var event = JSON.parse(evt.data).t
-  if (event === 'READY') {
-    localStorage.token = token
-    if (!localStorage.theme) localStorage.theme = 'dark'
-    $('body').attr('class', 'theme-' + localStorage.theme)
-    $('body').attr('style', '')
-    var dom = "<div class='flex-vertical flex-spacer'><section class='flex-horizontal flex-spacer'><div class='guilds'><div class='guild'><a draggable='false' style='background-color: rgb(46, 49, 54);' onclick='goDMs()' class='avatar'>DM</a></div></div><div class='flex-vertical channels-wrap'><div class='flex-vertical flex-spacer'><div class='guild-header'><header><span>Loading...</span></header></div><div class='channels'></div><div class='account'></div></div></div><div class='chat flex-vertical flex-spacer'><div class='title-wrap'><div class='title'><span class='channel'>Loading...</span></div><span class='topic'>Loading...</span></div><div class='messages-container'></div><form id='message'><div class='textarea'><div class='textarea-inner'><div class='channel-textarea-upload'><div class='file-input' style='position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; opacity: 0; cursor: pointer;'></div></div><textarea id='textarea' rows='1' placeholder='Chat using Botcord...' style='height: auto; overflow: hidden;'></textarea></div></div></form></div></section></div><input id='file-input' type='file' style='position:absolute;width:0px;height:0px;visibility:hidden;'/>"
-    document.body.innerHTML = dom
-    for (var i in JSON.parse(evt.data).d.private_channels) {
-      if (JSON.parse(evt.data).d.private_channels[i].recipients[0]) bot.privateChannels.set(JSON.parse(evt.data).d.private_channels[i].id, JSON.parse(evt.data).d.private_channels[i])
-    }
-    goDMs()
-    bot.user = JSON.parse(evt.data).d.user
-    if (bot.user.email !== null) {
-      for (var d in JSON.parse(evt.data).d.guilds) {
-      var guild = JSON.parse(evt.data).d.guilds[d]
-      var guildVar
-      guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background-color: rgb(46, 49, 54);" class="avatar">' + guild.name.match(/\b\w/g).join('') + '</a></div>'
-      if (guild.icon) guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background: url(\'https://cdn.discordapp.com/icons/' + guild.id + '/' + guild.icon + '.jpg\');background-size: 50px 50px;" class="avatar-small"></a></div>'
-      var guildObj = {}
-      guildObj.members = new Map()
-      guildObj.channels = new Map()
-      guildObj.roles = new Map()
-      guildObj.mfa = guild.mfa_level
-      guildObj.emojis = guild.emojis
-      guildObj.region = guild.region
-      guildObj.owner = guild.owner_id
-      guildObj.large = guild.large
-      guildObj.id = guild.id
-      guildObj.name = guild.name
-      guildObj.icon = guild.icon
-      guildObj.memberCount = guild.member_count
-      for (var i in guild.roles) {
-        var roleData = {}
-        roleData.name = guild.roles[i].name
-        roleData.hoist = guild.roles[i].hoist
-        roleData.color = guild.roles[i].color.toString(16)
-        roleData.id = guild.roles[i].id
-        roleData.managed = guild.roles[i].managed
-        roleData.mentionable = guild.roles[i].mentionable
-        roleData.permissions = guild.roles[i].permissions
-        roleData.position = guild.roles[i].position
-        guildObj.roles.set(roleData.id, roleData)
-      }
-      for (var i in guild.members) {
-        var memberData = {}
-        memberData.user = guild.members[i].user
-        memberData.nick = null || guild.members[i].nick
-        memberData.joinedAt = guild.members[i].joined_at
-        memberData.deaf = guild.members[i].deaf
-        memberData.mute = guild.members[i].mute
-        memberData.roles = guild.members[i].roles
-        memberData.status = 'offline'
-        memberData.game = null
-        if (guild.presences.indexOf(memberData.id) > -1) {
-          memberData.status = guild.presences[guild.presences.indexOf(memberData.id)].status
-          memberData.game = guild.presences[guild.presences.indexOf(memberData.id)].game
-        }
-        guildObj.members.set(guild.members[i].user.id, memberData)
-        if (!bot.users.has(memberData.user.id)) {
-          var userData = memberData.user
-          userData.status = memberData.status
-          userData.game = memberData.game
-          bot.users.set(memberData.user.id, userData)
-        }
-        if (activeGuild === 'dm') {
-          var users = $('.channels').children()
-          for (var a in users) {
-            if (users[a].childNodes !== undefined) {
-              if (users[a].childNodes[0].dataset.dmuid === memberData.user.id) {
-                users[a].childNodes[0].childNodes[0].childNodes[0].className = 'status ' + memberData.status
-              }
-            }
-          }
-        }
-      }
-      for (var i in guild.channels) {
-        var channelData = {}
-        if (guild.channels[i].type === 0) {
-          channelData.name = guild.channels[i].name
-          channelData.id = guild.channels[i].id
-          channelData.position = guild.channels[i].position
-          channelData.lastMessageID = guild.channels[i].last_message_id
-          channelData.lastPinDate = guild.channels[i].last_pin_timestamp
-          channelData.topic = guild.channels[i].topic
-          guildObj.channels.set(guild.channels[i].id, channelData)
-        }
-      }
-      guildObj.channels.forEach((channel) => {
-        channel.guild = guildObj
-        bot.channels.set(channel.id, channel)
-      })
-      bot.guilds.set(guild.id, guildObj)
-      $('.guilds').append(guildVar)
-    }
-  }
-    var bottag = ''
-    var avatar = 'https://cdn.discordapp.com/avatars/' + bot.user.id + '/' + bot.user.avatar + '.jpg'
-    if (bot.user.avatar === null) avatar = 'https://discordapp.com/assets/' + avatarHashes[bot.user.discriminator % avatarHashes.length] + '.png'
-    if (bot.user) bottag = '<span class="bot-tag">BOT</span>'
-    $('.account').append('<div class="avatar-small" style="background: url(\'' + avatar + '\');background-size: 30px 30px;"></div><div class="account-details"><div class="username">' + bot.user.username + bottag + '</div><div class="discriminator">#' + bot.user.discriminator + '</div></div><div class="leave">-></div>')
-    $(function () {
-      $('.leave').click(function() {
-        localStorage.token = ''
-        $('body').attr('style', 'background-color:#36393e;color:#737f8d;font-family:Whitney;text-align:center;height:100vh;max-height:100vh;overflow:hidden;')
-        document.body.innerHTML = `<h1 style="margin-top: 25%;">Please reload your page!</h1>`
-        Socket.onclose = function () {}
-        Socket.close()
-      })
+  var script = document.createElement('script')
+  script.src = './jscord.js'
+  script.charset = 'utf-8'
+  document.head.appendChild(script)
+  script.onload = function () {
+    login(formdata.trim())
+    readyHandler = function (payload) {
+      localStorage.token = token
+      if (!localStorage.theme) localStorage.theme = 'dark'
+      $('body').attr('class', 'theme-' + localStorage.theme)
+      $('body').attr('style', '')
+      var dom = "<div class='flex-vertical flex-spacer'><section class='flex-horizontal flex-spacer'><div class='guilds'><div class='guild'><a draggable='false' style='background-color: rgb(46, 49, 54);' onclick='goDMs()' class='avatar'>DM</a></div></div><div class='flex-vertical channels-wrap'><div class='flex-vertical flex-spacer'><div class='guild-header'><header><span>Loading...</span></header></div><div class='channels'></div><div class='account'></div></div></div><div class='chat flex-vertical flex-spacer'><div class='title-wrap'><div class='title'><span class='channel'>Loading...</span></div><span class='topic'>Loading...</span></div><div class='messages-container'></div><form id='message'><div class='textarea'><div class='textarea-inner'><div class='channel-textarea-upload'><div class='file-input' style='position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; opacity: 0; cursor: pointer;'></div></div><textarea id='textarea' rows='1' placeholder='Chat using Botcord...' style='height: auto; overflow: hidden;'></textarea></div></div></form></div></section></div><input id='file-input' name='file' type='file' style='position:absolute;width:0px;height:0px;visibility:hidden;'/>"
+      document.body.innerHTML = dom
+      goDMs()
       $("#textarea").keypress(function (e) {
         var code = (e.keyCode ? e.keyCode : e.which);
         if (code === 13 && !e.shiftKey) {
@@ -218,213 +44,47 @@ Socket.onmessage = function (evt) {
           $('#textarea').val('').blur()
         }
       })
-    })
-    var textarea = document.querySelector('textarea');
-
-textarea.addEventListener('keydown', autosize);
-
-function autosize(){
-  var el = this;
-  el.style.cssText = 'height:auto; padding:0;overflow:hidden;';
-  if (el.scrollHeight < 145) el.style.cssText = 'height:' + el.scrollHeight + 'px;overflow:hidden;';
-  else el.style.cssText = 'height:144px;overflow:hidden;'
-}
-    $('.account .avatar-small').click(function(){
-      if (!$('body').children()[2]) $('body').append('<div class="popout popout-top" style="position: absolute;width: 216px;top: 77vh;left: 11vh; height: auto;"><div class="status-picker popout-menu"><div class="popout-menu-item" onclick="testStatus(\'online\')"><span class="status online" style="margin-right:14px;"></span><div class="status-text">Online</div></div><div class="popout-menu-item" onclick="testStatus(\'idle\')"><span class="status idle" style="margin-right:14px;"></span><div class="status-text">Idle</div></div><div class="popout-menu-item" onclick="testStatus(\'dnd\')"><span class="status dnd" style="margin-right:14px;"></span><div class="status-text">Do Not Disturb</div></div><div class="popout-menu-item" onclick="testStatus(\'invisible\')"><span class="status offline" style="margin-right:14px;"></span><div class="status-text">Offline</div></div></div></div>')
-      else $('.popout').remove()
-    })
-  }
-  if (event === 'PRESENCE_UPDATE') {
-    var userdata = JSON.parse(evt.data).d
-    if (userdata.status) {
-      if (!(bot.users.has(userdata.user.id))) {
-        bot.users.set(userdata.user.id, userdata.status)
-      } else {
-        var newdata = bot.users.get(userdata.user.id)
-        if (newdata.user) {
-          if (userdata.game === newdata.user.game && userdata.status === newdata.user.game) return
-          newdata.user.status = userdata.status
-          if (userdata.game) newdata.user.game = userdata.game
-          bot.users.set(userdata.user.id, newdata)
-          if (activeGuild === 'dm') {
-            var users = $('.channels').children()
-            for (var i in users) {
-              if (users[i].childNodes !== undefined) {
-                if (users[i].childNodes[0].dataset.dmuid === userdata.user.id) {
-                  return users[i].childNodes[0].childNodes[0].childNodes[0].className = 'status ' + userdata.status
-                }
-              }
+      $('.file-input').click(function() {
+        $('#file-input').click()
+      })
+      document.getElementById('file-input').addEventListener("change", function() {
+        var formdat = new FormData()
+        var file = document.getElementById('file-input').files[0]
+        formdat.append('file', file, file.name)
+        uploadFile(activeChannel, formdat)
+      })
+      var avatar = 'https://cdn.discordapp.com/avatars/' + bot.user.id + '/' + bot.user.avatar + '.jpg'
+      if (bot.user.avatar === null) avatar = 'https://discordapp.com/assets/' + avatarHashes[bot.user.discriminator % avatarHashes.length] + '.png'
+      var bottag = ''
+      if (bot.user.bot) bottag = '<span class="bot-tag">BOT</span>'
+      $('.account').append('<div class="avatar-small" style="background: url(\'' + avatar + '\');background-size: 30px 30px;"></div><div class="account-details"><div class="username">' + bot.user.username + bottag + '</div><div class="discriminator">#' + bot.user.discriminator + '</div></div><div class="leave">-></div>')
+    }
+    guildHandler = function (payload) {
+      var guild = payload.detail
+      var guildVar
+      guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background-color: rgb(46, 49, 54);" class="avatar">' + guild.name.match(/\b\w/g).join('') + '</a></div>'
+      if (guild.icon) guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background: url(\'https://cdn.discordapp.com/icons/' + guild.id + '/' + guild.icon + '.jpg\');background-size: 50px 50px;" class="avatar-small"></a></div>'
+      $('.guilds').append(guildVar)
+    }
+    msgHandler = function (msg) {newMsg(msg.detail)}
+    msgEditHandler = function (msg) {editMsg(msg.detail)}
+    msgDelHandler = function (msg) {deleteMsg(msg.detail)}
+    msgDelBulkHandler = function (msg) {for (var i in msg.detail.ids) {deleteMsg(msg.detail.ids[i])}}
+    presenceHandler = function (payload) {
+      var memberData = payload.detail
+      if (activeGuild === 'dm') {
+        var users = $('.channels').children()
+        for (var a in users) {
+          if (users[a].childNodes !== undefined) {
+            if (users[a].childNodes[0].dataset.dmuid === memberData.user.id) {
+              if (memberData.game && !$(users[a].childNodes[0].childNodes[1].childNodes[1]).html().includes('<span>Playing<strong>')) $(users[a].childNodes[0].childNodes[1].childNodes[1]).append('<span>Playing<strong>' + memberData.game.name + '</strong></span>')
+              users[a].childNodes[0].childNodes[0].childNodes[0].className = 'status ' + memberData.status
             }
           }
         }
       }
     }
   }
-  if (event === 'GUILD_CREATE') {
-    var guild = JSON.parse(evt.data).d
-    var guildVar
-    guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background-color: rgb(46, 49, 54);" class="avatar">' + guild.name.match(/\b\w/g).join('') + '</a></div>'
-    if (guild.icon) guildVar = '<div class="guild" data-guild="' + guild.id + '"><a draggable="false" onclick="switchGuild(\'' + guild.id + '\')" style="background: url(\'https://cdn.discordapp.com/icons/' + guild.id + '/' + guild.icon + '.jpg\');background-size: 50px 50px;" class="avatar-small"></a></div>'
-    guildCreateMap(guild)
-    $('.guilds').append(guildVar)
-  }
-  if (event === 'MESSAGE_CREATE') {
-    if (JSON.parse(evt.data).d.channel_id === activeChannel) {
-      var msgObj = {}
-      msgObj.content = JSON.parse(evt.data).d.content
-      msgObj.author = JSON.parse(evt.data).d.author
-      msgObj.id = JSON.parse(evt.data).d.id
-      msgObj.edited = null
-      msgObj.embeds = JSON.parse(evt.data).d.embeds
-      msgObj.attachments = JSON.parse(evt.data).d.attachments
-      msgObj.mentions = JSON.parse(evt.data).d.mentions
-      msgObj.timestamp = JSON.parse(evt.data).d.timestamp
-      msgObj.webhook = JSON.parse(evt.data).d.webhook_id || 0
-      if (bot.channels.has(JSON.parse(evt.data).d.channel_id)) {
-        msgObj.channel = bot.channels.get(JSON.parse(evt.data).d.channel_id)
-        msgObj.member = bot.channels.get(JSON.parse(evt.data).d.channel_id).guild.members.get(msgObj.author.id)
-      }
-      newMsg(msgObj)
-    }
-  }
-  if (event === 'MESSAGE_UPDATE') {
-    if (JSON.parse(evt.data).d.content) {
-      var msg = JSON.parse(evt.data).d
-      var msgObj = {}
-      msgObj.content = JSON.parse(evt.data).d.content
-      msgObj.author = JSON.parse(evt.data).d.author
-      msgObj.id = JSON.parse(evt.data).d.id
-      msgObj.embeds = JSON.parse(evt.data).d.embeds
-      msgObj.edited = JSON.parse(evt.data).d.edited_timestamp
-      msgObj.attachments = JSON.parse(evt.data).d.attachments
-      msgObj.mentions = JSON.parse(evt.data).d.mentions
-      msgObj.timestamp = JSON.parse(evt.data).d.timestamp
-      msgObj.webhook = JSON.parse(evt.data).d.webhook_id || 0
-      if (bot.channels.has(JSON.parse(evt.data).d.channel_id)) {
-        msgObj.channel = bot.channels.get(JSON.parse(evt.data).d.channel_id)
-        msgObj.member = bot.channels.get(JSON.parse(evt.data).d.channel_id).guild.members.get(msgObj.author.id)
-      }
-      editMsg(msgObj)
-    }
-  }
-  if (event === 'MESSAGE_DELETE') {
-    deleteMsg(JSON.parse(evt.data).d.id)
-  }
-  if (event === 'MESSAGE_DELETE_BULK') {
-    for (var i in JSON.parse(evt.data).d.ids) {
-      deleteMsg(JSON.parse(evt.data).d.ids[i])
-    }
-  }
-  if (event === 'GUILD_UPDATE') {
-    var dat = JSON.parse(evt.data).d
-    if (dat.icon !== bot.guilds.get(dat.id).icon) {
-      $('[data-guild="' + dat.id + '"]').children()[0].attr('style', 'background: url(\'https://cdn.discordapp.com/icons/' + dat.id + '/' + dat.icon + '.jpg\');background-size: 50px 50px;')
-    }
-    guildCreateMap(dat)
-  }
-  if (event === 'GUILD_DELETE') {
-    var dat = JSON.parse(evt.data).d
-    if (!dat.unavailable) {
-      bot.guilds.get(dat.id).channels.forEach((channel) => {
-        bot.channels.delete(channel.id)
-      })
-      bot.guilds.delete(dat.id)
-      $('[data-guild="' + dat.id + '"]').remove()
-    } else {
-      $('[data-guild="' + dat.id + '"]').children()[0].attr('style', null)
-      $('[data-guild="' + dat.id + '"]').children()[0].attr('class', 'gerror')
-    }
-  }
-  if (event === 'GUILD_MEMBER_ADD') {
-    var dat = JSON.parse(evt.data).d
-    var memberData = {}
-    var guildObj = bot.guilds.get(dat.guild_id)
-    memberData.user = dat.user
-    memberData.nick = null || dat.nick
-    memberData.joinedAt = dat.joined_at
-    memberData.deaf = dat.deaf
-    memberData.mute = dat.mute
-    memberData.roles = dat.roles
-    var permm = {}
-    memberData.permissions = {}
-    for (var c in dat.roles) {
-      var temp = []
-      guildObj.roles.forEach((role) => {
-        temp.push({position: role.position, color: role.color, id: role.id})
-      })
-      temp = temp.sort(function(a,b){return a.position - b.position})
-      for (var d in temp) {
-        if (memberData.roles.indexOf(temp[d].id) > -1) {
-          var fetchPerm = getPerm(guildObj.roles.get(temp[d].id).permissions)
-            for (var e in fetchPerm) {
-              if (fetchPerm[e]) permm[fetchPerm[e].name] = fetchPerm[e].value
-            }
-            memberData.permissions = permm
-            if ($.isEmptyObject(permm)) memberData.permissions = 'hi'
-        }
-      }
-    }
-    memberData.status = 'offline'
-    memberData.game = null
-    guildObj.members.set(dat.user.id, memberData)
-    if (!bot.users.has(memberData.user.id)) {
-      var userData = memberData.user
-      userData.status = memberData.status
-      userData.game = memberData.game
-      bot.users.set(memberData.user.id, userData)
-    }
-  }
-  if (event === 'GUILD_MEMBER_REMOVE') {
-    var dat = JSON.parse(evt.data).d
-    var guild = bot.guilds.get(dat.guild_id)
-    guild.members.delete(dat.user.id)
-  }
-  if (event === 'GUILD_MEMBER_UPDATE') {
-    //console.log(JSON.parse(evt.data).d)
-  }
-  if (event === 'GUILD_ROLE_CREATE' || event === 'GUILD_ROLE_UPDATE') {
-    var dat = JSON.parse(evt.data).d
-    var guild = bot.guilds.get(dat.guild_id)
-    var roleData = {}
-    roleData.name = dat.role.name
-    roleData.hoist = dat.role.hoist
-    roleData.color = dat.role.color.toString(16)
-    roleData.id = dat.role.id
-    roleData.managed = dat.role.managed
-    roleData.mentionable = dat.role.mentionable
-    roleData.permissions = dat.role.permissions
-    roleData.position = dat.role.position
-    guild.roles.set(roleData.id, roleData)
-  }
-  if (event === 'GUILD_ROLE_DELETE') {
-    var dat = JSON.parse(evt.data).d
-    var guild = bot.guilds.get(dat.guild_id)
-    guild.roles.delete(dat.role.id)
-  }
-  if (JSON.parse(evt.data).op === 10) {
-    console.log('%c[Gateway] %c[Hello] via ' + JSON.parse(evt.data).d._trace + ', heartbeat interval: ' + JSON.parse(evt.data).d['heartbeat_interval'], 'color:purple; font-weight: bold;', 'color:#000;')
-    Socket.send(JSON.stringify({"op": 1, "d": 0}))
-    console.log('%c[Gateway] %cHeartbeat', 'color:purple; font-weight: bold;', 'color:#000;')
-    Socket.send(JSON.stringify({"op": 2, "d": data}))
-    console.log('%c[Gateway] %cIndentify', 'color:purple; font-weight: bold;', 'color:#000;')
-    hBeatInterval = JSON.parse(evt.data).d['heartbeat_interval']
-  }
-  if (JSON.parse(evt.data).op === 11) {
-    setTimeout(() => {
-      Socket.send(JSON.stringify({"op": 1, "d": 0}))
-      console.log('%c[Gateway] %cHeartbeat', 'color:purple; font-weight: bold;', 'color:#000;')
-    }, hBeatInterval)
-  }
-}
-Socket.onclose = function (evt) {
-  console.warn('%c[Gateway] %cDropped connection\n' + evt.code, 'color:purple; font-weight: bold;', 'color:red;')
-  if (evt.code === 4004) {
-    document.body.innerHTML = `<h1>Invalid token! Please refresh page.</h1>`
-    return localStorage.token = ''
-  }
-}
-Socket.onerror = function (e) {
-  console.log(e)
 }
 function switchGuild (id) {
   var guild = bot.guilds.get(id)
@@ -464,8 +124,6 @@ function switchGuild (id) {
           }
         } else {
           if (channel.permissions[i].id === bot.user.id) {
-          //  var channelpermss = getPerm(channel.permissions[i].deny)
-          //  if (channelpermss.length === 0) return guildChannels.push(channel)
           }
         }
       }
@@ -486,6 +144,8 @@ function goDMs () {
   $('.guild-header').append('<header><span>Direct Messages</span></header>')
   activeGuild = 'dm'
   activeChannel = 'dm'
+  document.getElementById('textarea').disabled = true
+  document.getElementById('textarea').placeholder = 'You cannot send messages to thin air!'
   var d = []
   dms.forEach((dm) => {
     d.push(dm)
@@ -493,15 +153,24 @@ function goDMs () {
   d = d.sort(function (a, b) {return parseInt(a.last_message_id) - parseInt(b.last_message_id)}).reverse()
   for (var i in d) {
     var status = 'offline'
-    if (bot.users.has(d[i].recipients[0].id)) status = bot.users.get(d[i].recipients[0].id).status
+    var game = ''
+    if (bot.users.has(d[i].recipients[0].id)) {
+      status = bot.users.get(d[i].recipients[0].id).status
+      if (bot.users.get(d[i].recipients[0].id).game) game = '<span>Playing<strong>' + bot.users.get(d[i].recipients[0].id).game.name + '</strong></span>'
+    }
     if (status === null || status === undefined) status = 'offline'
-    $('.channels').append('<div class="channel dm"><a data-dmuid="' + d[i].recipients[0].id + '" onclick="switchChannel(\'' + d[i].id + '\', \'' + d[i].recipients[0].username.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '\')" draggable="false"><div style="background-image: url(\'https://cdn.discordapp.com/avatars/' + d[i].recipients[0].id + '/' + d[i].recipients[0].avatar + '.jpg\')" class="avatar-small-dm"><div class="status ' + status + '"></div></div><div class="dm-user">' + d[i].recipients[0].username + '<div class="channel-activity"></div></div></a></div>')
+    var avatar = 'https://cdn.discordapp.com/avatars/' + d[i].recipients[0].id + '/' + d[i].recipients[0].avatar + '.jpg'
+    if (d[i].recipients[0].avatar === null) avatar = 'https://discordapp.com/assets/' + avatarHashes[d[i].recipients[0].id % avatarHashes.length] + '.png'
+    if (d[i].recipients.length === 1) $('.channels').append('<div class="channel dm"><a data-dmuid="' + d[i].recipients[0].id + '" onclick="switchChannel(\'' + d[i].id + '\', \'' + d[i].recipients[0].username.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '\')" draggable="false"><div style="background-image: url(\'' + avatar + '\')" class="avatar-small-dm"><div class="status ' + status + '"></div></div><div class="dm-user">' + d[i].recipients[0].username + '<div class="channel-activity">' + game + '</div></div></a></div>')
   }
 }
 function switchChannel (id, name) {
   apiCall('GET', 'https://discordapp.com/api/v6/channels/' + id + '/messages', true, {authorization: token, body: {limit: 75}}).then((msgs) => {
     if ($(document.querySelector('[data-channel="' + activeChannel + '"]'))[0]) $(document.querySelector('[data-channel="' + activeChannel + '"]'))[0].className = 'channel'
     activeChannel = id
+    document.getElementById('textarea').disabled = false
+    if (bot.channels.has(id)) document.getElementById('textarea').placeholder = 'Message #' + name + '...'
+    else document.getElementById('textarea').placeholder = 'Message @' + name + '...'
     if ($(document.querySelector('[data-channel="' + id + '"]'))[0]) $(document.querySelector('[data-channel="' + id + '"]'))[0].className = 'channel selected'
     $('.title-wrap').empty()
     $('.title-wrap').append('<div class="title"><span class="channel">' + name + '</span></div>')
@@ -525,11 +194,39 @@ function switchChannel (id, name) {
         }
       newMsg(msgObj)
     }
+  }).catch((e) => {
+    activeChannel = id
+    document.getElementById('textarea').disabled = false
+    if (bot.channels.has(id)) document.getElementById('textarea').placeholder = 'Message #' + name + '...'
+    else document.getElementById('textarea').placeholder = 'Message @' + name + '...'
+    if ($(document.querySelector('[data-channel="' + id + '"]'))[0]) $(document.querySelector('[data-channel="' + id + '"]'))[0].className = 'channel selected error'
+    $('.title-wrap').empty()
+    $('.title-wrap').append('<div class="title"><span class="channel">' + name + '</span></div>')
+    $('.messages-container').empty()
+    $('.messages-container').append($('<div class="msg-group" style="margin:0;background: rgba(255, 0, 0, 0.11)">').append('<div class="message" style="padding-left:20px;"><div class="avatar-large" style="background-image: url(\'https://discordapp.com/assets/f78426a064bc9dd24847519259bc42af.png\');"></div><div class="comment" data-uid="0"><h2><span class="username-wrap"><strong class="username">System</strong></span><span data-timestamp="' + Date.now() + '" class="timestamp">' + moment(Date.now()).calendar() + '</span></h2><div class="message-text"><span data-id="' + Date.now() + '" class="markup"><p><strong>You do not have permission to read messages (history) in this channel!</strong></p></span></div></div></div></div>'))
   })
 }
+function openDMchannel (id) {
+  if (!bot.privateChannels.has(id)) {
+    createDMchannel(id).then((r) => {
+      var privateChannelData = {
+        id: r.id,
+        last_message_id: r.last_message_id,
+        recipients: [r.recipient],
+        type: 1
+      }
+      bot.privateChannels.set(r.id, privateChannelData)
+      goDMs()
+      switchChannel(r.id, r.recipient.username)
+    })
+  } else {
+    goDMs()
+    switchChannel(id, bot.users.get(id).username)
+  }
+}
 function deleteMsg (msg) {
-  var d = $(document.querySelector('[data-id="' + msg + '"]'))
-  if (d[0]) {
+  var d = $(document.querySelector('[data-id="' + msg.id + '"]'))
+  if (d[0] && msg.channel_id === activeChannel) {
     if (d.parents()[0].childNodes.length === 1) {
       d.parents()[3].remove()
     } else d[0].remove()
@@ -546,12 +243,12 @@ function newMsg (msg) {
   var bot = ''
   if (msg.author.avatar === null) avatar = 'https://discordapp.com/assets/' + avatarHashes[msg.author.discriminator % avatarHashes.length] + '.png'
   if (msg.author.bot) bot = '<span class="bot-tag">Bot</span>'
-  var username = '<span class="username">' + msg.author.username.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot
+  var username = '<span class="username" onclick="openDMchannel(\'' + msg.author.id + '\')">' + msg.author.username.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot
   if (msg.member) {
     var name = msg.author.username
     var realName = ''
     if (msg.member.nick) {
-      username = '<span class="username">' + msg.member.nick.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot
+      username = '<span class="username" onclick="openDMchannel(\'' + msg.author.id + '\')">' + msg.member.nick.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot
       name = msg.member.nick
       realName = '<span class="timestamp">' + msg.author.username.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '#' + msg.author.discriminator + '</span>'
     }
@@ -567,7 +264,7 @@ function newMsg (msg) {
           if (temp[i].color.length === 4) temp[i].color = '00' + temp[i].color
           if (temp[i].color.length === 5) temp[i].color = '0' + temp[i].color
           if (msg.member.roles.indexOf(temp[i].id) > -1) {
-            username = '<span class="username" style="color:#' + temp[i].color + '">' + name.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot + realName
+            username = '<span class="username" onclick="openDMchannel(\'' + msg.author.id + '\')" style="color:#' + temp[i].color + '">' + name.replace(/</ig, '&lt;').replace(/>/ig, '&gt;') + '</span>' + bot + realName
             msg.member.color = temp[i].color
           }
         }
@@ -579,37 +276,20 @@ function newMsg (msg) {
     var parsedMsg = $('<div class="msg-group" style="padding: 15px 0;">').append('<div class="message"><div class="comment" data-uid="' + msg.author.id + '" style="margin-left: 20px;"><div class="message-text"><span data-id="' + msg.id + '" class="markup">' + msg.content + '</span></div></div></div></div>')
     return $('.messages-container').append(parsedMsg)
   }
-  if (msg.type !== 6) var parsedMsg = $('<div class="msg-group">').append('<div class="message"><div class="avatar-large" style="background-image: url(\'' + avatar + '\');"></div><div class="comment" data-uid="' + msg.author.id + '"><h2><span class="username-wrap" onclick="openDMchannel(\'' + msg.author.id + '\')">' + username + '</strong></span><span data-timestamp="' + msg.timestamp + '" class="timestamp">' + moment(msg.timestamp).calendar() + '</span></h2><div class="message-text"><span data-id="' + msg.id + '" class="markup">' + converter.makeHtml(antixss(msg)) + '</span></div></div></div></div>')
+  if (msg.type !== 6) var parsedMsg = $('<div class="msg-group">').append('<div class="message"><div class="avatar-large" style="background-image: url(\'' + avatar + '\');"></div><div class="comment" data-uid="' + msg.author.id + '"><h2><span class="username-wrap">' + username + '</strong></span><span data-timestamp="' + msg.timestamp + '" class="timestamp">' + moment(msg.timestamp).calendar() + '</span></h2><div class="message-text"><span data-id="' + msg.id + '" class="markup">' + converter.makeHtml(antixss(msg)) + '</span></div></div></div></div>')
   var d = $(document.querySelector('[data-uid="' + msg.author.id + '"]')).parents()
     if (d[2] !== undefined) {
       var day = moment(msg.timestamp).format('hh-DDMMYY').split('-')
-      var lastTimestamp = moment(d[2].lastChild.firstChild.childNodes[1].firstChild.lastChild.dataset.timestamp).format('hh-DDMMYY').split('-')
-      if (d[2].lastChild.firstChild.childNodes[1].dataset.uid === msg.author.id && day[0] === lastTimestamp[0] && day[1] === lastTimestamp[1]) {
-        return $(d[2].lastChild.firstChild.childNodes[1].lastChild).append('<span data-id="' + msg.id + '" class="markup">' + converter.makeHtml(antixss(msg)) + '</span>')
+      var lastTimestamp = moment(d[2].lastChild.firstChild.lastChild.firstChild.lastChild.dataset.timestamp).format('hh-DDMMYY').split('-')
+      if (d[2].lastChild.firstChild.lastChild.dataset.uid === msg.author.id && day[0] === lastTimestamp[0] && day[1] === lastTimestamp[1]) {
+        $(d[2].lastChild.firstChild.lastChild.lastChild).append('<span data-id="' + msg.id + '" class="markup">' + converter.makeHtml(antixss(msg)) + '</span>')
+        return $('.messages-container').scrollTop($('.messages-container').scrollTop() + $('.chat').children()[1].lastChild.lastChild.lastChild.clientHeight + 10)
       } else return $('.messages-container').append(parsedMsg)
     }
-  if (d[2] === undefined) return $('.messages-container').append(parsedMsg)
-}
-function apiCall(method, url, sync, headers) {
-  return new Promise((resolve, reject) => {
-    var xhr = new XMLHttpRequest()
-    var data = {}
-    xhr.addEventListener('readystatechange', function () {
-      if (xhr.readyState == 4) return resolve(JSON.parse(this.responseText))
-    })
-    xhr.onerror = function (e) {
-      return reject(e)
-    }
-    xhr.open(method, url, sync)
-    var botheader = ''
-    if (bot.user.email === null) botheader = 'Bot '
-    if (headers.authorization) xhr.setRequestHeader('Authorization', botheader + headers.authorization)
-    if (headers.body) {
-      data = JSON.stringify(headers.body)
-    }
-    xhr.setRequestHeader("Content-Type", "application/json")
-    xhr.send(data)
-  })
+  if (d[2] === undefined) {
+    $('.messages-container').append(parsedMsg)
+    return $('.messages-container').scrollTop($('.messages-container').scrollTop() + $('.chat').children()[1].lastChild.clientHeight)
+  }
 }
 function antixss (msg) {
   var edit = ''
@@ -639,21 +319,22 @@ function antixss (msg) {
       if (msg.embeds[0].description) attachEnd = attachEnd + '<div class="embed">' + provider + '<div class="embed-description">' + msg.embeds[0].description + '</div></div>'
     }
     if (msg.embeds[0].type === 'rich') {
-      console.log(msg.embeds[0])
       var embData = []
       if (msg.embeds[0].author) {
         embData.push('<div>')
         if (msg.embeds[0].author.icon_url) embData.push('<img class="embed-author-icon" src="' + msg.embeds[0].author.icon_url + '"/>')
-        if (msg.embeds[0].author.name) embData.push('<a class="embed-author" targer="_blank" rel="noreferrer">' + msg.embeds[0].author.name + '</a>')
+        if (msg.embeds[0].author.name) embData.push('<a class="embed-author" target="_blank" rel="noreferrer">' + msg.embeds[0].author.name + '</a>')
         embData.push('</div>')
       }
-      if (msg.embeds[0].fields.length > 0) embData.push('<div class="embed-fields">')
+      if (msg.embeds[0].title) embData.push('<div><a class="embed-title" target="_blank" rel="noreferrer">' + msg.embeds[0].title + '</a></div>')
+      if (msg.embeds[0].description) embData.push('<div class="embed-description markup">'+ converter.makeHtml(msg.embeds[0].description.replace(/>/ig, '&gt;').replace(/</ig, '&lt;').replace(/-/ig, '&#45;').replace(/\+/ig, '&#45;')) + '</div>')
+      if (msg.embeds[0].fields) embData.push('<div class="embed-fields">')
       for (var i in msg.embeds[0].fields) {
         var inline = ''
         if (msg.embeds[0].fields[i].inline) inline = '-inline'
-        embData.push('<div class="embed-field embed-field' + inline + '"><div class="embed-field-name">' + msg.embeds[0].fields[i].name + '</div><div class="embed-field-value markup">' + msg.embeds[0].fields[i].value.replace(/</, '&lt;').replace(/>/, '&gt;').replace(/\n+/ig, '<br>').replace(/https?:\/\/[\S]*/ig, function (m, r) {return m.replace(m, '<a href="' + m + '">' + m + '</a>')}).replace(/[\s\S]+/, function (m) {return twemoji.parse(m)}) + '</div></div>')
+        embData.push('<div class="embed-field embed-field' + inline + '"><div class="embed-field-name">' + msg.embeds[0].fields[i].name + '</div><div class="embed-field-value markup">' + msg.embeds[0].fields[i].value.replace(/\-/ig, '&#45;').replace(/\+/ig, '&#45;').replace(/</, '&lt;').replace(/>/, '&gt;').replace(/\n+/ig, '<br>').replace(/https?:\/\/[\S]*/ig, function (m, r) {return m.replace(m, '<a href="' + m + '">' + m + '</a>')}).replace(/[\s\S]+/, function (m) {return twemoji.parse(m)}) + '</div></div>')
       }
-      if (msg.embeds[0].fields.length > 0) embData.push('</div>')
+      if (msg.embeds[0].fields) embData.push('</div>')
       if (msg.embeds[0].footer) {
         embData.push('<div>')
         if (msg.embeds[0].footer.icon_url) embData.push('<img class="embed-footer-icon" src="' + msg.embeds[0].footer.icon_url + '"/>')
@@ -663,19 +344,27 @@ function antixss (msg) {
       attachEnd = attachEnd + '<div class="embed" style="border-left-color: #' + msg.embeds[0].color.toString(16) + '">' + embData.join('') + '</div>'
     }
   }
-  if (msg.attachments[0] !== undefined && msg.attachments[0].width) {
-    var dimensions = calculateAspectRatioFit(msg.attachments[0].width, msg.attachments[0].height, 400, 600)
-    var width = dimensions.width
-    if (msg.attachments[0].width < 400) width = Math.round(msg.attachments[0].width / 1.035)
-    attachEnd = attachEnd + '<img src="' + msg.attachments[0].proxy_url + '" href="' + msg.attachments[0].url + '" alt="' + msg.attachments[0].filename + '" width="' + width + '" height="auto"/>'
+  if (msg.attachments[0] !== undefined) {
+    if (msg.attachments[0].width) {
+      var dimensions = calculateAspectRatioFit(msg.attachments[0].width, msg.attachments[0].height, 400, 600)
+      var width = dimensions.width
+      if (msg.attachments[0].width < 400) width = Math.round(msg.attachments[0].width / 1.035)
+      attachEnd += '<img src="' + msg.attachments[0].proxy_url + '" href="' + msg.attachments[0].url + '" alt="' + msg.attachments[0].filename + '" width="' + width + '" height="auto"/>'
+    } else {
+      function humanFileSize (size) {
+        if (size === 0) return '0 bytes'
+        var i = Math.floor( Math.log(size) / Math.log(1024) );
+        return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['bytes', 'kB', 'MB', 'GB', 'TB'][i];
+      }
+      attachEnd += '<div class="attachment"><div class="icon icon-file document"></div><a href="" target="_blank" rel="noreferrer">' + msg.attachments[0].filename + '</a><div class="metadata">' + humanFileSize(msg.attachments[0].size) + '</div></div>'
+    }
   }
   var regex = new RegExp(/&lt;@!?(\d+)&gt;/ig)
-  var channelmention = new RegExp(/&lt;&#35;(\d+)&gt;/ig)
   var ghCodeblock = new RegExp(/```[\s\S]*```/g).exec(msg.content)
   var codeblock = new RegExp(/`[\s\S]*`/g).exec(msg.content)
   var i = 0
   var j = 0
-  return msg.content.replace(/#/g, '&#35;').replace(/>/g, '&gt;').replace(/</g, '&lt;').replace(/\[/ig, '&#91;').replace(/\(/ig, '&#40;').replace(/\./ig, '&#46;').replace(/-/ig, '&#45;').replace(/\+/ig, '&#43;').replace(regex, function (m, r) {
+  return msg.content.replace(/#/g, '&#35;').replace(/-/g, '&#45;').replace(/>/g, '&gt;').replace(/</g, '&lt;').replace(/\[/ig, '&#91;').replace(/\(/ig, '&#40;').replace(/\./ig, '&#46;').replace(/\+/ig, '&#43;').replace(regex, function (m, r) {
     m = m.replace(/&gt;/ig, '>').replace(/&lt;/ig, '<')
     if (msg.type !== 6 && msg.mentions[i] === undefined && r !== 0 && m.startsWith('<@')) {
       i++
@@ -693,6 +382,11 @@ function antixss (msg) {
     return m
   }).replace(/@everyone/ig, '<span class="mention">@everyone</span>').replace(/@here/ig, '<span class="mention">@here</span>').replace(/https?:\/\/[\S]*/ig, function (m, r) {
     return m.replace(m, '<a href="' + m + '">' + m + '</a>')
+  }).replace(/&lt;&#35;(\d+)&gt;/g, function (m, r) {
+    var channel = '&#35;deleted-channel'
+    if (bot.channels.get(r) !== undefined) channel = '<span class="mention">&#35;' + bot.channels.get(r).name + '</span>'
+    m = m.replace(m, channel)
+    return m
   }).replace(/(?:\\)?(?:&lt;){1,2}:[0-9a-z--_]+:(\d+)&gt;(?:\d+)?(?:&gt;)?/ig, function (m, r) {
     if (m.includes('\\')) return m.replace(m, m.substr(1))
     return m.replace(m, '<img class="emoji" src="https://cdn.discordapp.com/emojis/' + r + '.png"/>')
@@ -704,108 +398,6 @@ function antixss (msg) {
   }).replace(/`[\s\S]*`/g, codeblock).replace(/```[\s\S]*```/g, function (m) {
     return ghCodeblock[0].replace(/```([\S]+)/g, '```$1\n').replace(/([\s\S]+)```/g, '$1\n```')
   }) + edit + attachEnd
-}
-function guildCreateMap (guild) {
-  var guildObj = {}
-  guildObj.members = new Map()
-  guildObj.channels = new Map()
-  guildObj.roles = new Map()
-  guildObj.mfa = guild.mfa_level
-  guildObj.emojis = guild.emojis
-  guildObj.region = guild.region
-  guildObj.owner = guild.owner_id
-  guildObj.large = guild.large
-  guildObj.id = guild.id
-  guildObj.name = guild.name
-  guildObj.icon = guild.icon
-  guildObj.memberCount = guild.member_count
-  for (var i in guild.roles) {
-    var roleData = {}
-    roleData.name = guild.roles[i].name
-    roleData.hoist = guild.roles[i].hoist
-    roleData.color = guild.roles[i].color.toString(16)
-    roleData.id = guild.roles[i].id
-    roleData.managed = guild.roles[i].managed
-    roleData.mentionable = guild.roles[i].mentionable
-    roleData.permissions = guild.roles[i].permissions
-    roleData.position = guild.roles[i].position
-    guildObj.roles.set(roleData.id, roleData)
-  }
-  for (var i in guild.members) {
-    var memberData = {}
-    memberData.user = guild.members[i].user
-    memberData.nick = null || guild.members[i].nick
-    memberData.joinedAt = guild.members[i].joined_at
-    memberData.deaf = guild.members[i].deaf
-    memberData.mute = guild.members[i].mute
-    memberData.roles = guild.members[i].roles
-    var permm = {}
-    memberData.permissions = {}
-    for (var c in guild.members[i].roles) {
-      var temp = []
-      guildObj.roles.forEach((role) => {
-        temp.push({position: role.position, color: role.color, id: role.id})
-      })
-      temp = temp.sort(function(a,b){return a.position - b.position})
-      for (var d in temp) {
-        if (memberData.roles.indexOf(temp[d].id) > -1) {
-          var fetchPerm = getPerm(guildObj.roles.get(temp[d].id).permissions)
-            for (var e in fetchPerm) {
-              permm[fetchPerm[e].name] = fetchPerm[e].value
-            }
-            memberData.permissions = permm
-            if ($.isEmptyObject(permm)) memberData.permissions = 'hi'
-        }
-      }
-    }
-    memberData.status = 'offline'
-    memberData.game = null
-    for (var d in guild.presences) {
-      if (guild.presences[d].user.id === memberData.user.id) {
-        memberData.status = guild.presences[d].status
-        memberData.game = guild.presences[d].game
-      }
-    }
-    guildObj.members.set(guild.members[i].user.id, memberData)
-    if (!bot.users.has(memberData.user.id)) {
-      var userData = memberData.user
-      userData.status = memberData.status
-      userData.game = memberData.game
-      bot.users.set(memberData.user.id, userData)
-    }
-    if (activeGuild === 'dm') {
-      var users = $('.channels').children()
-      for (var a in users) {
-        if (users[a].childNodes !== undefined) {
-          if (users[a].childNodes[0].dataset.dmuid === memberData.user.id) {
-            users[a].childNodes[0].childNodes[0].childNodes[0].className = 'status ' + memberData.status
-          }
-        }
-      }
-    }
-  }
-  for (var i in guild.channels) {
-    var channelData = {}
-    if (guild.channels[i].type === 0) {
-      channelData.name = guild.channels[i].name
-      channelData.id = guild.channels[i].id
-      channelData.position = guild.channels[i].position
-      channelData.lastMessageID = guild.channels[i].last_message_id
-      channelData.lastPinDate = guild.channels[i].last_pin_timestamp
-      channelData.topic = guild.channels[i].topic
-      channelData.type = guild.channels[i].type
-      channelData.permissions = guild.channels[i].permission_overwrites
-      guildObj.channels.set(guild.channels[i].id, channelData)
-    }
-  }
-  guildObj.channels.forEach((channel) => {
-    channel.guild = guildObj
-    bot.channels.set(channel.id, channel)
-  })
-  bot.guilds.set(guild.id, guildObj)
-}
-function sendMessage (channel, content) {
-  return apiCall('POST', 'https://discordapp.com/api/channels/' + channel + '/messages', true, {authorization: token, body: {content: content}})
 }
 function parseCmd (input) {
   if (!input.startsWith('/') && input !== '') return sendMessage(activeChannel, input)
@@ -835,5 +427,15 @@ function parseCmd (input) {
   }
   if (command === '/unflip') {
     sendMessage(activeChannel, suffix + ' ┬─┬﻿ ノ( ゜-゜ノ)')
+  }
+  if (command === '/theme') {
+    var themes = ['dark', 'light']
+    var val = themes.indexOf(localStorage.theme)
+    if (themes.indexOf(localStorage.theme) > -1) {
+      if (val !== themes.length - 1) localStorage.theme = themes[val + 1]
+      else localStorage.theme = themes[0]
+      $('body').attr('class', 'theme-' + localStorage.theme)
+      $('.messages-container').append($('<div class="msg-group" style="margin:0;background: rgba(0, 255, 45, 0.11)">').append('<div class="message" style="padding-left:20px;"><div class="avatar-large" style="background-image: url(\'https://discordapp.com/assets/f78426a064bc9dd24847519259bc42af.png\');"></div><div class="comment" data-uid="0"><h2><span class="username-wrap"><strong class="username">System</strong></span><span data-timestamp="' + Date.now() + '" class="timestamp">' + moment(Date.now()).calendar() + '</span></h2><div class="message-text"><span data-id="' + time + '" class="markup"><p>Changed theme to <strong>' + localStorage.theme + '</strong></p></span></div></div></div></div>'))
+    }
   }
 }
