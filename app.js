@@ -15,6 +15,9 @@ app.get('/stylesheet.css', function (req, res) {
 app.get('/script.js', function (req, res) {
   res.sendFile(__dirname + '/client/script.js');
 })
+app.get('/jscord.js', function (req, res) {
+  res.sendFile(__dirname + '/client/jscord.js');
+})
 app.get('/initial.js', function (req, res) {
   res.sendFile(__dirname + '/client/initial.js');
 })
