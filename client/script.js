@@ -85,7 +85,7 @@ function startBotcord (formdata) {
 }
 function switchGuild (id) {
   var guild = bot.guilds.get(id);
-  $('.messages-container').empty()
+  $('.messages-container').empty() 
   $('.title-wrap').empty()
   $('.channels').empty()
   $('.guild-header').empty()
@@ -95,10 +95,10 @@ function switchGuild (id) {
   guild.channels.forEach((channel) => {
     if (channel.id === guild.id) {
 	  guildChannels.push(channel)
-	} else if (guild.members.get(bot.user.id).hasPermission['ADMINISTRATOR']) {
+	} else if (guild.members.get(bot.user.id).hasPermission('ADMINISTRATOR')) {
 	  guildChannels.push(channel)
 	} else {
-	  if (channel.permissionsFor(bot.user.id).hasPermission('READ_MESSAGES')) {
+	  if (channel.permissionsFor(guild.members.get(bot.user.id)).hasPermission('READ_MESSAGES')) {
 		guildChannels.push(channel)
 	  }
     }
@@ -141,7 +141,7 @@ function goDMs () {
   }
 }
 function switchChannel (id, name) {
-  bot.channels.get(id).fetchMessages().then((msgs) => {
+  bot.channels.get(id).messages.fetch().then((msgs) => {
     if ($(document.querySelector('[data-channel="' + activeChannel + '"]'))[0]) $(document.querySelector('[data-channel="' + activeChannel + '"]'))[0].className = 'channel'
     activeChannel = id
     document.getElementById('textarea').disabled = false
@@ -352,7 +352,7 @@ function parseEmojiShortcode (content) {
   return content;
 }
 function parseCmd (input, channel) {
-  if (!input.startsWith('/') && input !== '') return bot.channels.get(channel).sendMessage(input)
+  if (!input.startsWith('/') && input !== '') return bot.channels.get(channel).send(input)
   var command = input.trim().split(' ')[0]
   var suffix = input.trim().substr(command.length + 1)
   if (command === '/ping') {
@@ -375,10 +375,10 @@ function parseCmd (input, channel) {
     }
   }
   if (command === '/tableflip') {
-    bot.channels.get(channel).sendMessage(suffix + ' (╯°□°）╯︵ ┻━┻')
+    bot.channels.get(channel).send(suffix + ' (╯°□°）╯︵ ┻━┻')
   }
   if (command === '/unflip') {
-    bot.channels.get(channel).sendMessage(suffix + ' ┬─┬﻿ ノ( ゜-゜ノ)')
+    bot.channels.get(channel).send(suffix + ' ┬─┬﻿ ノ( ゜-゜ノ)')
   }
   if (command === '/theme') {
     var themes = ['dark', 'light']
