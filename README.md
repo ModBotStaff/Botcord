@@ -3,4 +3,4 @@ Botcord, a visual representation of OAuth applications in Discord, helps you see
 
 User tokens MAY have some significant issues as I've only focused on bot accounts for now. 
 
-Also, to the Discord developers, if you don't feel comfortable with the style sheet usen, feel free to contact me. I'll take it down upon request.
+Also, to the Discord developers, if you don't feel comfortable with the style sheet used, feel free to contact me. I'll take it down upon request.
